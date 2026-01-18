@@ -1021,8 +1021,8 @@ pWork-OS/
 
 ## 📮 联系方式
 
-- 问题反馈: [GitHub Issues](https://github.com/your-username/pWork-OS/issues)
-- 功能建议: [GitHub Discussions](https://github.com/your-username/pWork-OS/discussions)
+- 问题反馈: [GitHub Issues](https://github.com/blowinding/pWork-OS/issues)
+- 功能建议: [GitHub Discussions](https://github.com/blowinding/pWork-OS/discussions)
 
 ---
 
