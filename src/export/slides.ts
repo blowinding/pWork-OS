@@ -1,120 +1,112 @@
 /**
  * Slides Export Module
- * Convert Markdown documents to presentations using reveal-md
+ * Convert Markdown documents to presentations using Slidev
  */
 
 import { promises as fs } from 'node:fs';
-import { exec } from 'node:child_process';
-import { promisify } from 'node:util';
+import path from 'node:path';
 import { getDaily } from '../daily/index.js';
 import { getWeekly } from '../weekly/index.js';
 import { getProject } from '../project/index.js';
-import { getSlidesOutputPath, getCustomCssPath, exists } from '../core/fs.js';
+import { getSlidesOutputPath } from '../core/fs.js';
 import type { DailyLog, WeeklyReport, Project } from '../core/schema.js';
-
-const execAsync = promisify(exec);
+import {
+  type SlidevTheme,
+  type SlidevTransition,
+  type SlidevProjectConfig,
+  generateSlidevProject,
+  generateSlidevFrontmatter,
+  runSlidevBuild,
+  runSlidevExport,
+  isSlidevAvailable,
+  getSlidevProjectPath,
+  cleanupSlidevProject,
+} from './slidev.js';
 
 // ============================================
 // Types
 // ============================================
 
 /** Slide export format */
-export type SlideFormat = 'html' | 'pdf';
+export type SlideFormat = 'html' | 'pdf' | 'pptx';
 
-/** Slide theme (reveal.js themes) */
-export type SlideTheme = 'black' | 'white' | 'league' | 'sky' | 'beige' | 'night' | 'serif' | 'simple' | 'solarized' | 'blood' | 'moon';
+/** Slide theme (Slidev themes) */
+export type SlideTheme = SlidevTheme;
 
 /** Slide export options */
 export interface SlideExportOptions {
   /** Output format */
   format?: SlideFormat;
-  /** reveal.js theme */
+  /** Slidev theme */
   theme?: SlideTheme;
-  /** Custom CSS file path */
-  customCss?: string;
-  /** reveal.js presentation options */
-  revealOptions?: {
-    /** Transition style */
-    transition?: 'none' | 'fade' | 'slide' | 'convex' | 'concave' | 'zoom';
-    /** Show controls */
-    controls?: boolean;
-    /** Show progress bar */
-    progress?: boolean;
-  };
+  /** Transition style */
+  transition?: SlidevTransition;
+  /** Dark mode for PDF export */
+  dark?: boolean;
 }
 
 const DEFAULT_SLIDE_OPTIONS: Required<SlideExportOptions> = {
   format: 'html',
-  theme: 'black',
-  customCss: '',
-  revealOptions: {
-    transition: 'slide',
-    controls: true,
-    progress: true,
-  },
+  theme: 'default',
+  transition: 'slide-left',
+  dark: false,
 };
 
 // ============================================
-// reveal-md Integration
+// Slidev Integration
 // ============================================
 
+// Re-export isSlidevAvailable for CLI usage
+export { isSlidevAvailable };
+
 /**
- * Convert markdown content to slides using reveal-md CLI
- * @param markdown Markdown content
+ * Convert markdown content to slides using Slidev CLI
+ * @param markdown Slidev-formatted markdown content
  * @param outputPath Output file/directory path
  * @param options Export options
+ * @param workspacePath Workspace path for temporary project
  */
 export async function convertToSlides(
   markdown: string,
   outputPath: string,
-  options: SlideExportOptions = {}
+  options: SlideExportOptions = {},
+  workspacePath?: string
 ): Promise<void> {
   const opts = { ...DEFAULT_SLIDE_OPTIONS, ...options };
 
-  // Create temporary markdown file
-  const tempMdPath = `${outputPath}.temp.md`;
-  await fs.writeFile(tempMdPath, markdown, 'utf-8');
+  // Generate unique project name from output path
+  const projectName = `export-${Date.now()}`;
+  const projectPath = workspacePath
+    ? getSlidevProjectPath(workspacePath, projectName)
+    : path.join(path.dirname(outputPath), '.slidev-temp', projectName);
+
+  const config: SlidevProjectConfig = {
+    title: 'Presentation',
+    theme: opts.theme,
+    transition: opts.transition,
+    needsExport: opts.format === 'pdf' || opts.format === 'pptx',
+  };
 
   try {
-    // Build reveal-md command
-    const revealArgs: string[] = [tempMdPath];
+    // Generate Slidev project with the markdown content
+    await generateSlidevProject(projectPath, markdown, config);
 
-    // Add format-specific args
     if (opts.format === 'html') {
-      // For HTML, output is a directory with index.html
-      revealArgs.push('--static', outputPath);
-    } else if (opts.format === 'pdf') {
-      // For PDF, output is a single file
-      revealArgs.push('--print', outputPath);
-      revealArgs.push('--print-size', 'A4');
+      // Build static HTML
+      await runSlidevBuild(projectPath, { outDir: outputPath });
+    } else if (opts.format === 'pdf' || opts.format === 'pptx') {
+      // Ensure output directory exists
+      await fs.mkdir(path.dirname(outputPath), { recursive: true });
+      // Export to PDF or PPTX
+      await runSlidevExport(projectPath, {
+        output: outputPath,
+        format: opts.format,
+        dark: opts.dark,
+      });
     }
-
-    // Add theme
-    revealArgs.push('--theme', opts.theme);
-
-    // Add custom CSS if provided
-    if (opts.customCss) {
-      revealArgs.push('--css', opts.customCss);
-    }
-
-    // Execute reveal-md CLI
-    const command = `npx reveal-md ${revealArgs.join(' ')}`;
-    await execAsync(command);
   } finally {
-    // Clean up temp file
-    await fs.unlink(tempMdPath).catch(() => {});
-  }
-}
-
-/**
- * Check if reveal-md CLI is available
- */
-export async function isRevealMdAvailable(): Promise<boolean> {
-  try {
-    await execAsync('npx reveal-md --version');
-    return true;
-  } catch {
-    return false;
+    // Clean up temporary project
+    await cleanupSlidevProject(projectPath);
   }
 }
 
@@ -123,28 +115,26 @@ export async function isRevealMdAvailable(): Promise<boolean> {
 // ============================================
 
 /**
- * Add reveal.js frontmatter to markdown content
+ * Add Slidev frontmatter to markdown content
+ * @param title Presentation title
  * @param content Original markdown content
- * @param theme reveal.js theme
- * @param revealOptions Optional reveal.js configuration
- * @returns Markdown with reveal.js directives
+ * @param theme Slidev theme
+ * @param transition Transition style
+ * @returns Markdown with Slidev frontmatter
  */
-function addRevealDirectives(
+function addSlidevFrontmatter(
+  title: string,
   content: string,
-  theme: SlideTheme = 'black',
-  revealOptions?: SlideExportOptions['revealOptions']
+  theme: SlideTheme = 'default',
+  transition: SlidevTransition = 'slide-left'
 ): string {
-  const opts = revealOptions || DEFAULT_SLIDE_OPTIONS.revealOptions;
-  const revealHeader = `---
-theme: ${theme}
-revealOptions:
-  transition: ${opts.transition}
-  controls: ${opts.controls}
-  progress: ${opts.progress}
----
-
-`;
-  return revealHeader + content;
+  const config: SlidevProjectConfig = {
+    title,
+    theme,
+    transition,
+  };
+  const frontmatter = generateSlidevFrontmatter(config);
+  return frontmatter + '\n\n' + content;
 }
 
 /**
@@ -234,12 +224,16 @@ function processContentSection(title: string, content: string, maxLines: number 
  * Convert Daily log to slides
  * @param daily Daily document
  * @param theme Slide theme
- * @returns Markdown formatted for slides
+ * @returns Markdown formatted for Slidev
  */
-export function dailyToSlides(daily: DailyLog, theme: SlideTheme = 'black'): string {
+export function dailyToSlides(daily: DailyLog, theme: SlideTheme = 'default'): string {
   const lines: string[] = [];
 
-  // Title slide
+  // Title slide (cover layout)
+  lines.push('---');
+  lines.push('layout: cover');
+  lines.push('---');
+  lines.push('');
   lines.push(`# ${daily.meta.date} Daily Log`);
   lines.push('');
 
@@ -265,19 +259,23 @@ export function dailyToSlides(daily: DailyLog, theme: SlideTheme = 'black'): str
     }
   }
 
-  return addRevealDirectives(lines.join('\n'), theme);
+  return addSlidevFrontmatter(`${daily.meta.date} Daily Log`, lines.join('\n'), theme);
 }
 
 /**
  * Convert Weekly report to slides
  * @param weekly Weekly document
  * @param theme Slide theme
- * @returns Markdown formatted for slides
+ * @returns Markdown formatted for Slidev
  */
-export function weeklyToSlides(weekly: WeeklyReport, theme: SlideTheme = 'black'): string {
+export function weeklyToSlides(weekly: WeeklyReport, theme: SlideTheme = 'default'): string {
   const lines: string[] = [];
 
-  // Title slide
+  // Title slide (cover layout)
+  lines.push('---');
+  lines.push('layout: cover');
+  lines.push('---');
+  lines.push('');
   lines.push(`# Week ${weekly.meta.week} Report`);
   lines.push('');
   lines.push(`**${weekly.meta.start_date} ~ ${weekly.meta.end_date}**`);
@@ -299,19 +297,23 @@ export function weeklyToSlides(weekly: WeeklyReport, theme: SlideTheme = 'black'
     }
   }
 
-  return addRevealDirectives(lines.join('\n'), theme);
+  return addSlidevFrontmatter(`Week ${weekly.meta.week} Report`, lines.join('\n'), theme);
 }
 
 /**
  * Convert Project to slides
  * @param project Project document
  * @param theme Slide theme
- * @returns Markdown formatted for slides
+ * @returns Markdown formatted for Slidev
  */
-export function projectToSlides(project: Project, theme: SlideTheme = 'black'): string {
+export function projectToSlides(project: Project, theme: SlideTheme = 'default'): string {
   const lines: string[] = [];
 
-  // Title slide
+  // Title slide (cover layout)
+  lines.push('---');
+  lines.push('layout: cover');
+  lines.push('---');
+  lines.push('');
   lines.push(`# ${project.meta.project.name}`);
   lines.push('');
   lines.push(`**Type**: ${project.meta.project.type}`);
@@ -338,7 +340,7 @@ export function projectToSlides(project: Project, theme: SlideTheme = 'black'): 
     }
   }
 
-  return addRevealDirectives(lines.join('\n'), theme);
+  return addSlidevFrontmatter(project.meta.project.name, lines.join('\n'), theme);
 }
 
 // ============================================
@@ -362,21 +364,13 @@ export async function exportDailySlides(
     throw new Error(`Daily log not found: ${date}`);
   }
 
-  // Add custom CSS if it exists and not already specified
-  if (!options.customCss) {
-    const customCssPath = getCustomCssPath(workspacePath, 'reveal-custom');
-    if (await exists(customCssPath)) {
-      options.customCss = customCssPath;
-    }
-  }
-
   const opts = { ...DEFAULT_SLIDE_OPTIONS, ...options };
   const slideMarkdown = dailyToSlides(daily, opts.theme);
 
-  // For HTML, output is a directory; for PDF, it's a file
+  // For HTML, output is a directory; for PDF/PPTX, it's a file
   const filename = opts.format === 'html' ? `daily-${date}` : `daily-${date}.${opts.format}`;
   const outputPath = getSlidesOutputPath(workspacePath, filename);
-  await convertToSlides(slideMarkdown, outputPath, opts);
+  await convertToSlides(slideMarkdown, outputPath, opts, workspacePath);
 
   return outputPath;
 }
@@ -398,21 +392,13 @@ export async function exportWeeklySlides(
     throw new Error(`Weekly report not found: ${week}`);
   }
 
-  // Add custom CSS if it exists and not already specified
-  if (!options.customCss) {
-    const customCssPath = getCustomCssPath(workspacePath, 'reveal-custom');
-    if (await exists(customCssPath)) {
-      options.customCss = customCssPath;
-    }
-  }
-
   const opts = { ...DEFAULT_SLIDE_OPTIONS, ...options };
   const slideMarkdown = weeklyToSlides(weekly, opts.theme);
 
-  // For HTML, output is a directory; for PDF, it's a file
+  // For HTML, output is a directory; for PDF/PPTX, it's a file
   const filename = opts.format === 'html' ? `weekly-${week}` : `weekly-${week}.${opts.format}`;
   const outputPath = getSlidesOutputPath(workspacePath, filename);
-  await convertToSlides(slideMarkdown, outputPath, opts);
+  await convertToSlides(slideMarkdown, outputPath, opts, workspacePath);
 
   return outputPath;
 }
@@ -434,22 +420,14 @@ export async function exportProjectSlides(
     throw new Error(`Project not found: ${projectName}`);
   }
 
-  // Add custom CSS if it exists and not already specified
-  if (!options.customCss) {
-    const customCssPath = getCustomCssPath(workspacePath, 'reveal-custom');
-    if (await exists(customCssPath)) {
-      options.customCss = customCssPath;
-    }
-  }
-
   const opts = { ...DEFAULT_SLIDE_OPTIONS, ...options };
   const slideMarkdown = projectToSlides(project, opts.theme);
 
   const projectSlug = project.filePath.split('/').pop()?.replace('.md', '') || projectName;
-  // For HTML, output is a directory; for PDF, it's a file
+  // For HTML, output is a directory; for PDF/PPTX, it's a file
   const filename = opts.format === 'html' ? `project-${projectSlug}` : `project-${projectSlug}.${opts.format}`;
   const outputPath = getSlidesOutputPath(workspacePath, filename);
-  await convertToSlides(slideMarkdown, outputPath, opts);
+  await convertToSlides(slideMarkdown, outputPath, opts, workspacePath);
 
   return outputPath;
 }
@@ -459,7 +437,7 @@ export async function exportProjectSlides(
  * @param markdownPath Path to markdown file
  * @param outputPath Output file path
  * @param options Export options
- * @param workspacePath Optional workspace path for custom CSS detection
+ * @param workspacePath Optional workspace path for temporary project
  */
 export async function exportMarkdownSlides(
   markdownPath: string,
@@ -468,22 +446,14 @@ export async function exportMarkdownSlides(
   workspacePath?: string
 ): Promise<string> {
   const content = await fs.readFile(markdownPath, 'utf-8');
-
-  // Add custom CSS if workspace provided and CSS exists
-  if (workspacePath && !options.customCss) {
-    const customCssPath = getCustomCssPath(workspacePath, 'reveal-custom');
-    if (await exists(customCssPath)) {
-      options.customCss = customCssPath;
-    }
-  }
-
   const opts = { ...DEFAULT_SLIDE_OPTIONS, ...options };
 
-  // Add reveal.js directives if not already present
+  // Add Slidev frontmatter if not already present
+  const filename = path.basename(markdownPath, '.md');
   const slideMarkdown = content.includes('theme:')
     ? content
-    : addRevealDirectives(content, opts.theme, opts.revealOptions);
+    : addSlidevFrontmatter(filename, content, opts.theme, opts.transition);
 
-  await convertToSlides(slideMarkdown, outputPath, opts);
+  await convertToSlides(slideMarkdown, outputPath, opts, workspacePath);
   return outputPath;
 }

@@ -93,11 +93,14 @@ describe('Export Module', () => {
 
       const slides = dailyToSlides(daily);
 
-      expect(slides).toContain('marp: true');
+      // Slidev frontmatter
+      expect(slides).toContain('theme: default');
+      expect(slides).toContain('highlighter: shiki');
       expect(slides).toContain('2026-01-18');
       expect(slides).toContain('Daily Log');
       expect(slides).toContain('Project A');
       expect(slides).toContain('---'); // Slide separator
+      expect(slides).toContain('layout: cover'); // Slidev cover layout
     });
 
     it('should convert Weekly to slides', async () => {
@@ -105,10 +108,13 @@ describe('Export Module', () => {
 
       const slides = weeklyToSlides(weekly);
 
-      expect(slides).toContain('marp: true');
+      // Slidev frontmatter
+      expect(slides).toContain('theme: default');
+      expect(slides).toContain('highlighter: shiki');
       expect(slides).toContain('2026-W03');
       expect(slides).toContain('Week');
       expect(slides).toContain('---');
+      expect(slides).toContain('layout: cover'); // Slidev cover layout
     });
 
     it('should convert Project to slides', async () => {
@@ -121,22 +127,25 @@ describe('Export Module', () => {
 
       const slides = projectToSlides(project);
 
-      expect(slides).toContain('marp: true');
+      // Slidev frontmatter
+      expect(slides).toContain('theme: default');
+      expect(slides).toContain('highlighter: shiki');
       expect(slides).toContain('Test Project');
       expect(slides).toContain('software');
       expect(slides).toContain('Doing');
       expect(slides).toContain('owner/repo');
       expect(slides).toContain('---');
+      expect(slides).toContain('layout: cover'); // Slidev cover layout
     });
 
     it('should apply theme to slides', async () => {
       const daily = await createDaily(testWorkspace, { date: '2026-01-18' });
 
       const defaultSlides = dailyToSlides(daily, 'default');
-      const gaiaSlides = dailyToSlides(daily, 'gaia');
+      const seriphSlides = dailyToSlides(daily, 'seriph');
 
       expect(defaultSlides).toContain('theme: default');
-      expect(gaiaSlides).toContain('theme: gaia');
+      expect(seriphSlides).toContain('theme: seriph');
     });
   });
 });

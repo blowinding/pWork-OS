@@ -1,5 +1,5 @@
 /**
- * Custom Reveal.js Styling for pWork-OS Slides
+ * Custom Slidev Styling for pWork-OS Slides
  * Optimized for better readability and layout
  */
 
@@ -7,44 +7,30 @@
  * Slide Layout
  * ============================================ */
 
-.reveal .slides {
-  text-align: left;
-}
-
-.reveal .slides section {
-  height: 100%;
-  padding: 2rem;
+.slidev-layout {
+  padding: 2rem 3rem;
 }
 
 /* ============================================
  * Headings - Upper Left Positioning
  * ============================================ */
 
-.reveal h1 {
-  text-align: center;
+h1 {
   font-size: 2.5em;
-  margin-bottom: 1em;
+  margin-bottom: 0.5em;
 }
 
-.reveal h2 {
-  text-align: left;
+h2 {
   font-size: 1.8em;
   margin: 0 0 0.5em 0;
-  padding: 0;
-  position: relative;
-  top: 0;
-  left: 0;
 }
 
-.reveal h3 {
-  text-align: left;
+h3 {
   font-size: 1.4em;
   margin: 0.8em 0 0.4em 0;
-  padding: 0;
 }
 
-.reveal h4 {
-  text-align: left;
+h4 {
   font-size: 1.2em;
   margin: 0.6em 0 0.3em 0;
 }
@@ -53,22 +39,22 @@
  * Content Spacing
  * ============================================ */
 
-.reveal p {
+p {
   margin: 0.5em 0;
   line-height: 1.6;
 }
 
-.reveal ul,
-.reveal ol {
-  margin: 0.5em 0 0.5em 2em;
+ul,
+ol {
+  margin: 0.5em 0 0.5em 1.5em;
 }
 
-.reveal li {
+li {
   margin: 0.3em 0;
 }
 
-.reveal ul ul,
-.reveal ol ol {
+ul ul,
+ol ol {
   margin: 0.2em 0 0.2em 1.5em;
 }
 
@@ -76,7 +62,7 @@
  * Images - Responsive Sizing
  * ============================================ */
 
-.reveal img {
+img {
   max-width: 80%;
   max-height: 60vh;
   height: auto;
@@ -85,13 +71,13 @@
   object-fit: contain;
 }
 
-.reveal section img {
-  border: none;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+.slidev-layout img {
+  border-radius: 4px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Small images (inline) */
-.reveal p img {
+p img {
   max-width: 40%;
   max-height: 30vh;
   display: inline-block;
@@ -102,116 +88,113 @@
  * Code Blocks
  * ============================================ */
 
-.reveal pre {
-  width: 95%;
-  margin: 0.5em auto;
-  font-size: 0.55em;
-  line-height: 1.4;
-}
-
-.reveal code {
-  padding: 0.2em 0.4em;
+.slidev-code {
   font-size: 0.9em;
 }
 
-.reveal pre code {
-  padding: 1em;
-  max-height: 500px;
-  overflow: auto;
+pre {
+  margin: 0.5em 0;
+  border-radius: 6px;
+}
+
+code {
+  padding: 0.2em 0.4em;
+  font-size: 0.9em;
+  border-radius: 4px;
 }
 
 /* ============================================
  * Tables
  * ============================================ */
 
-.reveal table {
-  margin: 0.5em auto;
-  font-size: 0.8em;
+table {
+  margin: 0.5em 0;
+  font-size: 0.9em;
   border-collapse: collapse;
   width: auto;
 }
 
-.reveal table th,
-.reveal table td {
+th,
+td {
   padding: 0.4em 0.8em;
-  border: 1px solid;
+  border: 1px solid var(--slidev-theme-border, #e2e8f0);
 }
 
-.reveal table th {
-  font-weight: bold;
+th {
+  font-weight: 600;
+  background: var(--slidev-theme-background-alt, #f7fafc);
 }
 
 /* ============================================
  * Blockquotes
  * ============================================ */
 
-.reveal blockquote {
-  width: 90%;
-  margin: 1em auto;
+blockquote {
+  margin: 1em 0;
   padding: 0.5em 1em;
   font-style: italic;
-  border-left: 4px solid;
+  border-left: 4px solid var(--slidev-theme-primary, #3b82f6);
+  background: var(--slidev-theme-background-alt, #f7fafc);
+  border-radius: 0 4px 4px 0;
 }
 
 /* ============================================
  * Task Lists (Checkboxes)
  * ============================================ */
 
-.reveal input[type="checkbox"] {
+input[type="checkbox"] {
   margin-right: 0.5em;
 }
 
-.reveal ul.task-list {
+.task-list-item {
   list-style: none;
-  padding-left: 0;
-}
-
-.reveal ul.task-list li {
-  margin: 0.4em 0;
+  margin-left: -1.5em;
 }
 
 /* ============================================
  * Metadata and Tags
  * ============================================ */
 
-.reveal .meta {
-  font-size: 0.8em;
-  color: #888;
+.meta {
+  font-size: 0.85em;
+  opacity: 0.7;
   margin: 0.5em 0;
 }
 
-.reveal .tags {
-  font-size: 0.7em;
+.tags {
+  font-size: 0.75em;
   margin: 0.5em 0;
 }
 
-.reveal .tag {
+.tag {
   display: inline-block;
   padding: 0.2em 0.6em;
   margin: 0.2em;
-  background: rgba(100, 100, 100, 0.3);
-  border-radius: 3px;
+  background: var(--slidev-theme-primary, #3b82f6);
+  color: white;
+  border-radius: 9999px;
+  font-size: 0.8em;
 }
 
 /* ============================================
- * Fragment Animations
+ * Cover Layout Customization
  * ============================================ */
 
-.reveal .fragment {
-  transition: all 0.3s ease;
+.slidev-layout.cover h1 {
+  font-size: 3em;
+  text-align: center;
+}
+
+.slidev-layout.cover p {
+  text-align: center;
 }
 
 /* ============================================
- * Content Overflow Handling
+ * Two Columns Layout
  * ============================================ */
 
-.reveal .slides section {
-  overflow: auto;
-}
-
-.reveal .slides section.scrollable {
-  height: 100%;
-  overflow-y: auto;
+.slidev-layout.two-cols {
+  gap: 2rem;
 }
 
 /* ============================================
@@ -219,11 +202,11 @@
  * ============================================ */
 
 @media print {
-  .reveal img {
+  img {
     max-height: 50vh;
   }
 
-  .reveal pre code {
+  pre {
     max-height: none;
     overflow: visible;
   }
