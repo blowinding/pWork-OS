@@ -231,51 +231,38 @@ function generateWeeklyContent(
   const lines: string[] = [];
 
   // 标题
-  lines.push(`# Week ${weekMeta.week} 工作周报`);
+  lines.push(`# Week ${weekMeta.week} Weekly Report`);
   lines.push('');
 
-  // 本周总结
-  lines.push('## 本周总结（一句话）');
-  lines.push('');
-  lines.push('');
-
-  // 本周重点产出
-  lines.push('## 本周重点产出（Highlights）');
-  lines.push('');
-  if (highlights.length > 0) {
-    for (const highlight of highlights) {
-      lines.push(`### ${highlight.date}`);
-      lines.push('');
-      lines.push(highlight.content);
-      lines.push('');
-    }
-  } else {
-    lines.push('*本周暂无标记为 highlight 的日志*');
-    lines.push('');
-  }
-
-  // 项目进展
-  lines.push('## 项目进展');
+  // Work Plan
+  lines.push('## Work Plan');
   lines.push('');
   if (projects.length > 0) {
     for (const project of projects) {
-      lines.push(`### ${project}`);
-      lines.push('- 本周进展：');
-      lines.push('- 当前状态：');
-      lines.push('- 下周计划：');
-      lines.push('');
+      lines.push(`- ${project}`);
     }
   } else {
-    lines.push('*本周暂无关联项目*');
-    lines.push('');
+    lines.push('-');
   }
+  lines.push('');
 
-  // 每日工作摘要
-  lines.push('## 每日工作摘要');
+  // Goals from Previous Week
+  lines.push('## Goals from Previous Week');
+  lines.push('');
+  lines.push('-');
+  lines.push('');
+
+  // Update from Previous Week: Summary
+  lines.push('## Update from Previous Week: Summary');
+  lines.push('');
+  lines.push('');
+
+  // Update from Previous Week: Details
+  lines.push('## Update from Previous Week: Details');
   lines.push('');
   if (dailySummaries.length > 0) {
     for (const summary of dailySummaries) {
-      const highlightMark = summary.isHighlight ? ' ⭐' : '';
+      const highlightMark = summary.isHighlight ? ' *' : '';
       const projectsInfo = summary.projects.length > 0
         ? ` [${summary.projects.join(', ')}]`
         : '';
@@ -284,22 +271,17 @@ function generateWeeklyContent(
       if (summary.excerpt) {
         lines.push(summary.excerpt);
       } else {
-        lines.push('*无内容*');
+        lines.push('*No content*');
       }
       lines.push('');
     }
   } else {
-    lines.push('*本周暂无 Daily Log*');
+    lines.push('*No daily logs for this week*');
     lines.push('');
   }
 
-  // 风险与阻塞
-  lines.push('## 风险与阻塞');
-  lines.push('-');
-  lines.push('');
-
-  // 下周计划
-  lines.push('## 下周计划');
+  // Plan for This Week
+  lines.push('## Plan for This Week');
   lines.push('-');
   lines.push('');
 
@@ -334,21 +316,25 @@ export function mergeWeeklyContent(
   }
 
   // 提取并保留用户编辑的章节
-  const userSummary = extractSection(existingContent, '本周总结');
-  const userRisks = extractSection(existingContent, '风险与阻塞');
-  const userPlan = extractSection(existingContent, '下周计划');
+  const userWorkPlan = extractSection(existingContent, 'Work Plan');
+  const userGoals = extractSection(existingContent, 'Goals from Previous Week');
+  const userUpdateSummary = extractSection(existingContent, 'Update from Previous Week: Summary');
+  const userPlan = extractSection(existingContent, 'Plan for This Week');
 
   // 在新内容中替换这些章节
   let content = newAggregation.content;
 
-  if (userSummary && userSummary !== '') {
-    content = replaceSection(content, '本周总结（一句话）', userSummary);
+  if (userWorkPlan && userWorkPlan !== '-') {
+    content = replaceSection(content, 'Work Plan', userWorkPlan);
   }
-  if (userRisks && userRisks !== '-') {
-    content = replaceSection(content, '风险与阻塞', userRisks);
+  if (userGoals && userGoals !== '-') {
+    content = replaceSection(content, 'Goals from Previous Week', userGoals);
+  }
+  if (userUpdateSummary && userUpdateSummary !== '') {
+    content = replaceSection(content, 'Update from Previous Week: Summary', userUpdateSummary);
   }
   if (userPlan && userPlan !== '-') {
-    content = replaceSection(content, '下周计划', userPlan);
+    content = replaceSection(content, 'Plan for This Week', userPlan);
   }
 
   return content;

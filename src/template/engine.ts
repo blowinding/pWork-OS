@@ -194,25 +194,26 @@ end_date: {{WEEK_END}}
 projects: []
 ---
 
-# Week {{WEEK}} 工作周报
+# Week {{WEEK}} Weekly Report
 
-## 本周总结（一句话）
-
-
-## 本周重点产出（Highlights）
-<!-- 自动从 daily.weekly_highlight = true 聚合 -->
-
-## 项目进展
-
-### Project A
-- 本周进展：
-- 当前状态：
-- 下周计划：
-
-## 风险与阻塞
+## Work Plan
+<!-- High-level work plan for this period -->
 -
 
-## 下周计划
+## Goals from Previous Week
+<!-- Auto-aggregated from previous week's "Plan for this week" -->
+-
+
+## Update from Previous Week: Summary
+<!-- One-sentence summary of last week's progress -->
+
+
+## Update from Previous Week: Details
+<!-- Detailed progress on each goal from previous week -->
+-
+
+## Plan for This Week
+<!-- Goals and deliverables for the coming week -->
 -
 `;
 

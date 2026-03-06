@@ -161,8 +161,8 @@ describe('Weekly Module', () => {
       // 手动编辑周报
       const weekly1 = await getWeekly(testWorkspace, '2026-W03');
       const editedContent = weekly1!.content.replace(
-        '## 本周总结（一句话）\n\n',
-        '## 本周总结（一句话）\n\n这是手动编辑的总结\n'
+        '## Update from Previous Week: Summary\n\n',
+        '## Update from Previous Week: Summary\n\nThis is a manually edited summary\n'
       );
       await fs.writeFile(
         weekly1!.filePath,
@@ -176,7 +176,7 @@ describe('Weekly Module', () => {
       const weekly2 = await generateWeekly(testWorkspace, '2026-W03');
 
       // 应保留用户编辑
-      expect(weekly2.content).toContain('这是手动编辑的总结');
+      expect(weekly2.content).toContain('This is a manually edited summary');
       // 但也应包含新的 daily
       expect(weekly2.content).toContain('2026-01-13');
     });
